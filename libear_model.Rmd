@@ -179,3 +179,17 @@ nested_lm_results |>
   )
 ```
 
+Use an *anonymous* function isntead of `lm_airbnb`
+
+```{r}
+nested_lm_results =
+  nyc_airbnb |> 
+  nest(data = -borough) |> 
+  mutate(
+    fits = map(data, \(df) lm(price~ stars + room_type, data = df)),
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(borough, results) |> 
+  unnest(results)
+```
+

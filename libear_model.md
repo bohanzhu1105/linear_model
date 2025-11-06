@@ -290,3 +290,17 @@ nested_lm_results |>
     ## 2 Queens             91.6  9.65                   -69.3                  -95.0
     ## 3 Brooklyn           69.6 21.0                    -92.2                 -106. 
     ## 4 Manhattan          95.7 27.1                   -124.                  -154.
+
+Use an *anonymous* function isntead of `lm_airbnb`
+
+``` r
+nested_lm_results =
+  nyc_airbnb |> 
+  nest(data = -borough) |> 
+  mutate(
+    fits = map(data, \(df) lm(price~ stars + room_type, data = df)),
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(borough, results) |> 
+  unnest(results)
+```
