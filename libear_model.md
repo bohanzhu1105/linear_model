@@ -304,3 +304,35 @@ nested_lm_results =
   select(borough, results) |> 
   unnest(results)
 ```
+
+let’s do an even more extreme example
+
+``` r
+manhattan_analysis = 
+  nyc_airbnb |> 
+  filter(
+    borough == "Manhattan"
+  ) |> 
+  nest(data = -neighbourhood) |> 
+  mutate(
+    fits = map(data,\(df) lm(price ~ stars + room_type, data = df)),
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(neighbourhood, results) |> 
+  unnest(results)
+```
+
+Make a plot
+
+``` r
+manhattan_analysis |> 
+  filter(term == "stars") |> 
+  mutate(
+    neighborhood = fct_reorder(neighbourhood, estimate)
+  ) |> 
+  ggplot(aes(x = neighbourhood, y = estimate))+
+  geom_point()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+![](libear_model_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
