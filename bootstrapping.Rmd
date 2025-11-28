@@ -1,0 +1,66 @@
+---
+title: "bootstrapping"
+author: "Bohan Zhu"
+date: "2025-11-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+library(modelr)
+```
+
+
+Simulate two datasets,
+
+```{r}
+set.seed(1)
+
+n_samp = 250
+
+sim_df_const = 
+  tibble(x = rnorm(n_samp, 1, 1),
+         error = rnorm(n_samp, 0, 1),
+         y = 2 + 3 * x + error)
+
+sim_df_nonconst = 
+  sim_df_const |> 
+  mutate(
+    error = .75 * error * x, 
+    y = 2 + 3 * x + error
+    )
+```
+
+Look at these data
+
+```{r}
+sim_df_nonconst |> 
+  ggplot(aes(x = x, y = y)) +
+  geom_point()
+  
+```
+
+What does `lm` do for these?
+
+```{r}
+sim_df_const |> 
+  lm(y ~ x, data = _) |> 
+  broom::tidy() |> 
+  knitr::kable(digit = 3)
+
+sim_df_nonconst |> 
+  lm(y ~ x, data = _) |> 
+  broom::tidy() |> 
+  knitr::kable(digit = 3)
+```
+
+
+
+
+
+
