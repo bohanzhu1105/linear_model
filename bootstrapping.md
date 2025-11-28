@@ -1,24 +1,31 @@
----
-title: "bootstrapping"
-author: "Bohan Zhu"
-date: "2025-11-28"
-output: github_document
----
+bootstrapping
+================
+Bohan Zhu
+2025-11-28
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, tidy = TRUE)
+``` r
+library(tidyverse)
 ```
 
-```{r}
-library(tidyverse)
+    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+    ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+    ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+    ## ✔ ggplot2   4.0.0     ✔ tibble    3.3.0
+    ## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+    ## ✔ purrr     1.1.0     
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
+    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+``` r
 library(p8105.datasets)
 library(modelr)
 ```
 
-
 Simulate two datasets,
 
-```{r}
+``` r
 set.seed(1)
 
 n_samp = 250
@@ -38,30 +45,43 @@ sim_df_nonconst =
 
 Look at these data
 
-```{r}
+``` r
 sim_df_nonconst |> 
   ggplot(aes(x = x, y = y)) +
   geom_point()
-  
 ```
+
+![](bootstrapping_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 What does `lm` do for these?
 
-```{r}
+``` r
 sim_df_const |> 
   lm(y ~ x, data = _) |> 
   broom::tidy() |> 
   knitr::kable(digit = 3)
+```
 
+| term        | estimate | std.error | statistic | p.value |
+|:------------|---------:|----------:|----------:|--------:|
+| (Intercept) |    1.977 |     0.098 |    20.157 |       0 |
+| x           |    3.045 |     0.070 |    43.537 |       0 |
+
+``` r
 sim_df_nonconst |> 
   lm(y ~ x, data = _) |> 
   broom::tidy() |> 
   knitr::kable(digit = 3)
 ```
 
+| term        | estimate | std.error | statistic | p.value |
+|:------------|---------:|----------:|----------:|--------:|
+| (Intercept) |    1.934 |     0.105 |    18.456 |       0 |
+| x           |    3.112 |     0.075 |    41.661 |       0 |
+
 Write a functino to draw a bootstrap sample.
 
-```{r}
+``` r
 boot_sample = function(df) {
   sample_frac(df, size = 1, replace = TRUE)
 }
@@ -69,7 +89,7 @@ boot_sample = function(df) {
 
 Does this work?
 
-```{r}
+``` r
 sim_df_nonconst |> 
   boot_sample() |> 
   ggplot(aes(x=x, y=y)) +
@@ -79,9 +99,13 @@ sim_df_nonconst |>
   ylim(c(-5, 16))
 ```
 
+    ## `geom_smooth()` using formula = 'y ~ x'
+
+![](bootstrapping_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+
 So I want to formalize this a bit and extract results.
 
-```{r}
+``` r
 boot_straps =
   tibble(
     iter = 1:5000
@@ -93,7 +117,7 @@ boot_straps =
 
 (quick check)
 
-```{r}
+``` r
 boot_straps |> 
   pull(bootstrap_sample) |> 
   nth(2) |> 
@@ -104,22 +128,24 @@ boot_straps |>
   ylim(c(-5, 16))
 ```
 
+    ## `geom_smooth()` using formula = 'y ~ x'
+
+![](bootstrapping_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
 Actually run my analyses!
 
-```{r}
-
+``` r
 bootstrap_results = 
   boot_straps |> 
   mutate(
     fits = map(bootstrap_sample,\(df)lm(y ~ x, data = df)),
     results = map(fits, broom::tidy)
          )
-
 ```
 
 Look at results.
 
-```{r}
+``` r
 bootstrap_results |> 
   select(iter, results) |> 
   unnest(results) |> 
@@ -130,9 +156,15 @@ bootstrap_results |>
   )
 ```
 
-Look at these first 
+    ## # A tibble: 2 × 3
+    ##   term         mean     se
+    ##   <chr>       <dbl>  <dbl>
+    ## 1 (Intercept)  1.93 0.0762
+    ## 2 x            3.11 0.103
 
-```{r}
+Look at these first
+
+``` r
 bootstrap_results |> 
   select(iter, results) |> 
   unnest(results) |> 
@@ -141,7 +173,9 @@ bootstrap_results |>
   geom_density()
 ```
 
-```{r}
+![](bootstrapping_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+``` r
 bootstrap_results |> 
   select(iter, results) |> 
   unnest(results) |> 
@@ -152,9 +186,15 @@ bootstrap_results |>
   )
 ```
 
+    ## # A tibble: 2 × 3
+    ##   term        ci_lower ci_upper
+    ##   <chr>          <dbl>    <dbl>
+    ## 1 (Intercept)     1.78     2.09
+    ## 2 x               2.91     3.32
+
 ## do it agian but faster this time
 
-```{r}
+``` r
 bootstrap_results =
   sim_df_nonconst |> 
   bootstrap(n = 5000) |> 
@@ -167,7 +207,7 @@ bootstrap_results =
   unnest(results)
 ```
 
-```{r}
+``` r
 bootstrap_results |> 
   group_by(term) |> 
   summarize(
@@ -176,9 +216,15 @@ bootstrap_results |>
   )
 ```
 
+    ## # A tibble: 2 × 3
+    ##   term        ci_lower ci_upper
+    ##   <chr>          <dbl>    <dbl>
+    ## 1 (Intercept)     1.78     2.08
+    ## 2 x               2.91     3.31
+
 ## Airbnb
 
-```{r}
+``` r
 data("nyc_airbnb")
 
 nyc_airbnb = 
@@ -196,17 +242,21 @@ nyc_airbnb |>
   geom_point(alpha = 0.5)
 ```
 
+![](bootstrapping_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+
 Remind what this looks like?
 
-```{r}
+``` r
 nyc_airbnb |> 
   ggplot(aes(x = stars, y = price, color = room_type)) +
   geom_point(alpha = .5)
 ```
 
+![](bootstrapping_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
 Try to do the bootstrap
 
-```{r}
+``` r
 airbnb_bootstrap_results = 
   nyc_airbnb |> 
   filter(borough == "Manhattan") |> 
@@ -222,14 +272,11 @@ airbnb_bootstrap_results =
 
 Look at the distribution of the sope for stars
 
-```{r}
+``` r
 airbnb_bootstrap_results |> 
   filter(term == "stars") |> 
   ggplot(aes(x = estimate)) +
   geom_density()
 ```
 
-
-
-
-
+![](bootstrapping_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
